@@ -1,10 +1,11 @@
-import type React from "react"
+import { AuthProvider } from "@/components/auth-provider"
+import { FirebaseProvider } from '@/components/providers/FirebaseProvider'
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import type React from "react"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/components/auth-provider"
-import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,12 +23,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </AuthProvider>
+        <FirebaseProvider>
+          <AuthProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              {children}
+              <Toaster />
+            </ThemeProvider>
+          </AuthProvider>
+        </FirebaseProvider>
       </body>
     </html>
   )
@@ -36,3 +39,4 @@ export default function RootLayout({
 
 
 import './globals.css'
+

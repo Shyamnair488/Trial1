@@ -1,7 +1,31 @@
-import { useEffect, useState } from 'react'
-import { app, auth, db } from '../firebase/config'
+import { app, auth, db } from '@/lib/firebase/config'
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 
-export function useFirebase() {
+interface FirebaseContextType {
+  isInitialized: boolean
+  error: Error | null
+  app: any
+  auth: any
+  db: any
+}
+
+const FirebaseContext = createContext<FirebaseContextType>({
+  isInitialized: false,
+  error: null,
+  app: null,
+  auth: null,
+  db: null,
+})
+
+export function useFirebaseContext() {
+  return useContext(FirebaseContext)
+}
+
+interface FirebaseProviderProps {
+  children: ReactNode
+}
+
+export function FirebaseProvider({ children }: FirebaseProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
@@ -30,11 +54,17 @@ export function useFirebase() {
     initializeFirebase()
   }, [])
 
-  return {
+  const value = {
     isInitialized,
     error,
     app,
     auth,
-    db
+    db,
   }
+
+  return (
+    <FirebaseContext.Provider value={value}>
+      {children}
+    </FirebaseContext.Provider>
+  )
 } 

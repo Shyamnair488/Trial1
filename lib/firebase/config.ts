@@ -4,16 +4,17 @@ import { getAuth } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 import { getMessaging, Messaging } from "firebase/messaging"
 
+// Initialize Firebase services
+let app: any = null
+let auth: any = null
+let db: any = null
+let analytics: Analytics | null = null
+let messaging: Messaging | null = null
+
 // Check if we're in a browser environment
 const isBrowser = typeof window !== "undefined"
 
 // Initialize Firebase only if we're in a browser environment
-let app
-let auth
-let db
-let analytics: Analytics | null = null
-let messaging: Messaging | null = null
-
 if (isBrowser) {
   try {
     // Check if all required environment variables are present
@@ -58,7 +59,7 @@ if (isBrowser) {
       db = getFirestore(app)
 
       // Initialize analytics and messaging only if they're supported
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator) {
         try {
           analytics = getAnalytics(app)
           messaging = getMessaging(app)
