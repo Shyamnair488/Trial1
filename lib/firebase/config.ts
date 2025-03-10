@@ -28,12 +28,18 @@ let messaging: Messaging | null = null
 // Initialize Firebase immediately if we're in the browser
 if (typeof window !== "undefined") {
   try {
-    app = initializeApp(firebaseConfig)
-    auth = getAuth(app)
-    db = getFirestore(app)
+    if (!app) {
+      app = initializeApp(firebaseConfig)
+    }
+    if (!auth) {
+      auth = getAuth(app)
+    }
+    if (!db) {
+      db = getFirestore(app)
+    }
 
     // Initialize Analytics only in production
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && !analytics) {
       analytics = getAnalytics(app)
     }
 

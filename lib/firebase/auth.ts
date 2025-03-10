@@ -66,30 +66,55 @@ export const signInWithEmail = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(authInstance, email, password)
     const user = userCredential.user
 
-    // Get user profile and update status
-    const userDoc = await getUserProfile(user.uid).catch(() => ({ isAdmin: false }))
-    await updateUserStatus(user.uid, true).catch(console.warn)
+    // Wait for user profile and status update
+    try {
+      const [userDoc] = await Promise.all([
+        getUserProfile(user.uid),
+        updateUserStatus(user.uid, true)
+      ])
 
-    const isAdmin = userDoc?.isAdmin || false
-    console.log("User signed in successfully:", user.uid, "Is Admin:", isAdmin)
+      const isAdmin = userDoc?.isAdmin || false
+      console.log("User signed in successfully:", user.uid, "Is Admin:", isAdmin)
 
-    // Return a plain object with only the necessary data
-    return {
-      uid: user.uid,
-      email: user.email || '',
-      displayName: user.displayName || '',
-      photoURL: user.photoURL || '',
-      emailVerified: user.emailVerified || false,
-      isAdmin
+      // Return a plain object with only the necessary data
+      return {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        emailVerified: user.emailVerified || false,
+        isAdmin,
+        lastLogin: new Date().toISOString()
+      }
+    } catch (profileError) {
+      console.warn("Error updating user profile/status:", profileError)
+      // Still return user data even if profile update fails
+      return {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        emailVerified: user.emailVerified || false,
+        isAdmin: false,
+        lastLogin: new Date().toISOString()
+      }
     }
   } catch (error) {
     console.error("Error signing in with email:", error)
     if (error instanceof Error) {
       const firebaseError = error as { code?: string; message: string }
-      if (firebaseError.code === "auth/user-not-found" || firebaseError.code === "auth/wrong-password") {
-        throw new Error("Invalid email or password. Please try again.")
-      } else {
-        throw new Error(firebaseError.message)
+      switch (firebaseError.code) {
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+          throw new Error("Invalid email or password. Please try again.")
+        case "auth/too-many-requests":
+          throw new Error("Too many failed attempts. Please try again later.")
+        case "auth/user-disabled":
+          throw new Error("This account has been disabled. Please contact support.")
+        case "auth/invalid-email":
+          throw new Error("Invalid email format. Please check your email address.")
+        default:
+          throw new Error(firebaseError.message || "An error occurred during sign in.")
       }
     } else {
       throw new Error("An unexpected error occurred. Please try again.")
