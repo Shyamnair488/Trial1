@@ -1,24 +1,23 @@
+import { deleteUser } from "firebase/auth"
 import {
-  doc,
-  setDoc,
-  getDoc,
-  collection,
   addDoc,
-  serverTimestamp,
-  updateDoc,
-  arrayUnion,
-  getDocs,
-  query,
-  where,
   arrayRemove,
+  arrayUnion,
+  collection,
   deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
   Timestamp,
+  updateDoc,
+  where
 } from "firebase/firestore"
-import { db } from "./config"
-import { deleteUser } from "firebase/auth"
-import { auth } from "./config"
+import { auth, db } from "./config"
 
 // User functions
 export const createUser = async (uid: string, userData: any) => {

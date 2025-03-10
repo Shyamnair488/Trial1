@@ -2,7 +2,7 @@
 
 import { Analytics, getAnalytics } from "firebase/analytics"
 import { getApp, getApps, initializeApp } from "firebase/app"
-import { getAuth } from "firebase/auth"
+import { getAuth, GoogleAuthProvider } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 import { getMessaging, Messaging } from "firebase/messaging"
 
@@ -88,5 +88,5 @@ if (typeof window !== 'undefined') {
 }
 
 // Export initialized services
-export { analytics, app, auth, db, messaging }
+export { analytics, app, auth, db, GoogleAuthProvider, messaging }
 

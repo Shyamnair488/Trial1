@@ -1,15 +1,17 @@
+'use client'
+
 import {
-    createUserWithEmailAndPassword,
-    sendPasswordResetEmail as firebaseSendPasswordResetEmail,
-    signOut as firebaseSignOut,
-    GoogleAuthProvider,
-    onAuthStateChanged,
-    PhoneAuthProvider,
-    RecaptchaVerifier,
-    signInWithCredential,
-    signInWithEmailAndPassword,
-    signInWithPopup,
-    updateProfile,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  PhoneAuthProvider,
+  RecaptchaVerifier,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile
 } from "firebase/auth"
 import { auth } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
