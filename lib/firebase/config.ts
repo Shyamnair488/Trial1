@@ -25,6 +25,25 @@ let db: Firestore | null = null
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
 
+// Initialize Firebase immediately if we're in the browser
+if (typeof window !== "undefined") {
+  try {
+    // Initialize Firebase
+    app = initializeApp(firebaseConfig)
+    auth = getAuth(app)
+    db = getFirestore(app)
+
+    // Initialize Analytics only in production
+    if (process.env.NODE_ENV === "production") {
+      analytics = getAnalytics(app)
+    }
+
+    console.log("Firebase initialized successfully")
+  } catch (error) {
+    console.error("Firebase initialization error:", error)
+  }
+}
+
 // Create a promise that resolves when Firebase is initialized
 const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
   if (typeof window === "undefined") {
@@ -35,7 +54,7 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
 
   try {
     // Check if Firebase is already initialized
-    if (app) {
+    if (app && auth) {
       console.log("Firebase already initialized")
       resolve(true)
       return

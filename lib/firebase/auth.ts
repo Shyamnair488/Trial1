@@ -13,21 +13,28 @@ import {
   signInWithPopup,
   updateProfile,
 } from "firebase/auth"
-import { auth } from "./config"
+import { auth, firebaseInitPromise } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
 // Helper function to check if auth is initialized
-const checkAuth = () => {
-  if (!auth) {
-    throw new Error("Firebase Auth is not initialized")
+const checkAuth = async () => {
+  try {
+    // Wait for Firebase to initialize
+    await firebaseInitPromise
+    if (!auth) {
+      throw new Error("Firebase Auth is not initialized")
+    }
+    return auth
+  } catch (error) {
+    console.error("Error checking auth:", error)
+    throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
   }
-  return auth
 }
 
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     console.log("Signing up with email:", email)
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password)
 
@@ -58,7 +65,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
 
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     console.log("Attempting to sign in with email:", email)
     const userCredential = await signInWithEmailAndPassword(authInstance, email, password)
 
@@ -89,7 +96,7 @@ export const signInWithEmail = async (email: string, password: string) => {
 // Update the signInWithGoogle function to handle the unauthorized domain error better
 export const signInWithGoogle = async () => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     console.log("Signing in with Google")
     const provider = new GoogleAuthProvider()
     provider.addScope("profile")
@@ -135,7 +142,7 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     // Update user's online status before signing out
     if (authInstance.currentUser) {
       await updateUserStatus(authInstance.currentUser.uid, false)
@@ -152,7 +159,7 @@ export const signOut = async () => {
 // Add password reset function
 export const sendPasswordResetEmail = async (email: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     await firebaseSendPasswordResetEmail(authInstance, email)
     console.log("Password reset email sent to:", email)
     return true
@@ -216,7 +223,7 @@ export const setupPresence = () => {
 // Add this new function
 export const createAdminAccount = async (email: string, password: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password)
     const user = userCredential.user
 
@@ -258,7 +265,7 @@ export const setupRecaptcha = (containerId: string): RecaptchaVerifier | null =>
 
 export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifier: any) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     const provider = new PhoneAuthProvider(authInstance)
     const verificationId = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier)
     return verificationId
@@ -270,7 +277,7 @@ export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifie
 
 export const verifyPhoneNumber = async (verificationId: string, verificationCode: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     const credential = PhoneAuthProvider.credential(verificationId, verificationCode)
     const userCredential = await signInWithCredential(authInstance, credential)
 
