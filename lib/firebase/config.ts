@@ -1,17 +1,10 @@
 'use client'
 
 import { Analytics, getAnalytics } from "firebase/analytics"
-import { getApp, getApps, initializeApp } from "firebase/app"
-import { getAuth, GoogleAuthProvider } from "firebase/auth"
-import { getFirestore } from "firebase/firestore"
+import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app"
+import { Auth, getAuth, GoogleAuthProvider } from "firebase/auth"
+import { Firestore, getFirestore } from "firebase/firestore"
 import { getMessaging, Messaging } from "firebase/messaging"
-
-// Initialize Firebase services
-let app: any = null
-let auth: any = null
-let db: any = null
-let analytics: Analytics | null = null
-let messaging: Messaging | null = null
 
 // Firebase configuration
 const firebaseConfig = {
@@ -23,6 +16,13 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
 }
+
+// Initialize Firebase
+let app: FirebaseApp
+let auth: Auth
+let db: Firestore
+let analytics: Analytics | null = null
+let messaging: Messaging | null = null
 
 // Function to initialize Firebase
 function initializeFirebase() {
@@ -57,22 +57,24 @@ function initializeFirebase() {
     // Initialize Firebase only if it hasn't been initialized yet
     if (!getApps().length) {
       app = initializeApp(firebaseConfig)
+      auth = getAuth(app)
+      db = getFirestore(app)
+
+      // Initialize analytics and messaging only if they're supported
+      if ('serviceWorker' in navigator) {
+        try {
+          analytics = getAnalytics(app)
+          messaging = getMessaging(app)
+        } catch (error) {
+          console.warn("Firebase Analytics/Messaging initialization failed:", error)
+        }
+      }
+
+      console.log("Firebase initialized successfully")
     } else {
       app = getApp()
-    }
-
-    // Initialize services
-    auth = getAuth(app)
-    db = getFirestore(app)
-
-    // Initialize analytics and messaging only if they're supported
-    if ('serviceWorker' in navigator) {
-      try {
-        analytics = getAnalytics(app)
-        messaging = getMessaging(app)
-      } catch (error) {
-        console.warn("Firebase Analytics/Messaging initialization failed:", error)
-      }
+      auth = getAuth(app)
+      db = getFirestore(app)
     }
 
     return true

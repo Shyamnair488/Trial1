@@ -16,9 +16,17 @@ import {
 import { auth } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
+// Helper function to ensure Firebase is initialized
+const ensureFirebaseInitialized = async () => {
+  if (!auth) {
+    throw new Error("Firebase Auth is not initialized. Please wait a moment and try again.")
+  }
+}
+
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
   try {
+    await ensureFirebaseInitialized()
     console.log("Signing up with email:", email)
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
 
@@ -49,6 +57,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
 
 export const signInWithEmail = async (email: string, password: string) => {
   try {
+    await ensureFirebaseInitialized()
     console.log("Attempting to sign in with email:", email)
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
 
@@ -79,27 +88,15 @@ export const signInWithEmail = async (email: string, password: string) => {
 // Update the signInWithGoogle function to handle the unauthorized domain error better
 export const signInWithGoogle = async () => {
   try {
+    await ensureFirebaseInitialized()
     console.log("Signing in with Google")
     
-    // Check if we're in a browser environment
-    if (typeof window === 'undefined') {
-      throw new Error("Google sign-in is only available in browser environment")
-    }
-
-    // Check if auth is initialized
-    if (!auth) {
-      throw new Error("Firebase Auth is not initialized")
-    }
-
     const provider = new GoogleAuthProvider()
     // Add scopes for better profile access
     provider.addScope("profile")
     provider.addScope("email")
     provider.setCustomParameters({ 
-      prompt: "select_account",
-      // Add these parameters to help with domain authorization
-      login_hint: "user@example.com",
-      hd: "example.com"
+      prompt: "select_account"
     })
 
     // Sign in with popup
