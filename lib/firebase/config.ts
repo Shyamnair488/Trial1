@@ -18,9 +18,9 @@ const firebaseConfig = {
 }
 
 // Initialize Firebase
-let app: FirebaseApp
-let auth: Auth
-let db: Firestore
+let app: FirebaseApp | null = null
+let auth: Auth | null = null
+let db: Firestore | null = null
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
 let isInitialized = false
@@ -30,6 +30,7 @@ async function initializeFirebase() {
   try {
     // Check if we're in a browser environment
     if (typeof window === 'undefined') {
+      console.log("Not in browser environment, skipping Firebase initialization")
       return false
     }
 
@@ -57,6 +58,7 @@ async function initializeFirebase() {
 
     // Initialize Firebase only if it hasn't been initialized yet
     if (!getApps().length) {
+      console.log("Initializing Firebase app...")
       app = initializeApp(firebaseConfig)
       auth = getAuth(app)
       db = getFirestore(app)
@@ -74,10 +76,17 @@ async function initializeFirebase() {
       console.log("Firebase initialized successfully")
       isInitialized = true
     } else {
+      console.log("Firebase app already initialized, getting existing app...")
       app = getApp()
       auth = getAuth(app)
       db = getFirestore(app)
       isInitialized = true
+    }
+
+    // Verify initialization
+    if (!app || !auth || !db) {
+      console.error("Firebase services not properly initialized")
+      return false
     }
 
     return true
@@ -93,6 +102,8 @@ if (typeof window !== 'undefined') {
   initializeFirebase().then(success => {
     if (!success) {
       console.error("Failed to initialize Firebase")
+    } else {
+      console.log("Firebase initialization completed successfully")
     }
   }).catch(error => {
     console.error("Error during Firebase initialization:", error)

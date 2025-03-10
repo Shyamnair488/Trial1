@@ -17,14 +17,16 @@ import { auth, isInitialized } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
 // Helper function to ensure Firebase is initialized with retries
-const ensureFirebaseInitialized = async (maxRetries = 5): Promise<void> => {
+const ensureFirebaseInitialized = async (maxRetries = 10): Promise<void> => {
   let retries = 0
   while (retries < maxRetries) {
     if (isInitialized && auth) {
+      console.log("Firebase is initialized and ready")
       return
     }
-    // Wait for 200ms between retries
-    await new Promise(resolve => setTimeout(resolve, 200))
+    console.log(`Waiting for Firebase initialization... Attempt ${retries + 1}/${maxRetries}`)
+    // Wait for 500ms between retries
+    await new Promise(resolve => setTimeout(resolve, 500))
     retries++
   }
   throw new Error("Firebase is not initialized. Please refresh the page and try again.")
@@ -34,6 +36,8 @@ const ensureFirebaseInitialized = async (maxRetries = 5): Promise<void> => {
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
   try {
     await ensureFirebaseInitialized()
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     console.log("Signing up with email:", email)
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
 
@@ -65,6 +69,8 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
 export const signInWithEmail = async (email: string, password: string) => {
   try {
     await ensureFirebaseInitialized()
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     console.log("Attempting to sign in with email:", email)
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
 
@@ -96,6 +102,8 @@ export const signInWithEmail = async (email: string, password: string) => {
 export const signInWithGoogle = async () => {
   try {
     await ensureFirebaseInitialized()
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     console.log("Signing in with Google")
     
     const provider = new GoogleAuthProvider()
@@ -146,6 +154,8 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     // Update user's online status before signing out
     if (auth.currentUser) {
       await updateUserStatus(auth.currentUser.uid, false)
@@ -162,6 +172,7 @@ export const signOut = async () => {
 // Add password reset function
 export const sendPasswordResetEmail = async (email: string) => {
   try {
+    if (!auth) throw new Error("Firebase Auth is not initialized")
     await firebaseSendPasswordResetEmail(auth, email)
     console.log("Password reset email sent to:", email)
     return true
