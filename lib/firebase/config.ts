@@ -25,23 +25,9 @@ let db: Firestore | null = null
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
 
-// Create a promise that resolves when Firebase is initialized
-const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
-  if (typeof window === "undefined") {
-    console.log("Firebase initialization skipped on server side")
-    resolve(false)
-    return
-  }
-
+// Initialize Firebase immediately if we're in the browser
+if (typeof window !== "undefined") {
   try {
-    // Check if Firebase is already initialized
-    if (app && auth) {
-      console.log("Firebase already initialized")
-      resolve(true)
-      return
-    }
-
-    // Initialize Firebase
     app = initializeApp(firebaseConfig)
     auth = getAuth(app)
     db = getFirestore(app)
@@ -52,24 +38,11 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
     }
 
     console.log("Firebase initialized successfully")
-    resolve(true)
   } catch (error) {
     console.error("Firebase initialization error:", error)
-    reject(error)
   }
-})
-
-// Initialize Firebase immediately if we're in the browser
-if (typeof window !== "undefined") {
-  firebaseInitPromise
-    .then(() => {
-      console.log("Firebase services initialized successfully")
-    })
-    .catch((error) => {
-      console.error("Error initializing Firebase services:", error)
-    })
 }
 
 // Export the initialized services
-export { analytics, app, auth, db, firebaseInitPromise, messaging }
+export { analytics, app, auth, db, messaging }
 
