@@ -13,13 +13,16 @@ import {
   signInWithPopup,
   updateProfile
 } from "firebase/auth"
-import { auth } from "./config"
+import { auth, isInitialized } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
 // Helper function to ensure Firebase is initialized
 const ensureFirebaseInitialized = async () => {
+  if (!isInitialized) {
+    throw new Error("Firebase is not initialized. Please refresh the page and try again.")
+  }
   if (!auth) {
-    throw new Error("Firebase Auth is not initialized. Please wait a moment and try again.")
+    throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
   }
 }
 

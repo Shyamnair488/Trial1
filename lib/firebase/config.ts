@@ -29,7 +29,7 @@ function initializeFirebase() {
   try {
     // Check if we're in a browser environment
     if (typeof window === 'undefined') {
-      return
+      return false
     }
 
     // Check if all required environment variables are present
@@ -51,7 +51,7 @@ function initializeFirebase() {
       console.error(
         `Missing required environment variables: ${missingEnvVars.join(', ')}`
       )
-      return
+      return false
     }
 
     // Initialize Firebase only if it hasn't been initialized yet
@@ -85,10 +85,11 @@ function initializeFirebase() {
 }
 
 // Initialize Firebase if we're in a browser environment
+let isInitialized = false
 if (typeof window !== 'undefined') {
-  initializeFirebase()
+  isInitialized = initializeFirebase()
 }
 
 // Export initialized services
-export { analytics, app, auth, db, GoogleAuthProvider, messaging }
+export { analytics, app, auth, db, GoogleAuthProvider, isInitialized, messaging }
 

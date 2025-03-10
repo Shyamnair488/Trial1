@@ -225,8 +225,22 @@ export const sendVibe = async (roomId: string, senderId: string, type: string, s
   }
 }
 
+// Add user profile type
+export interface UserProfile {
+  id: string
+  email: string
+  displayName: string | null
+  phoneNumber: string | null
+  photoURL: string | null
+  createdAt: Date
+  online: boolean
+  isAdmin?: boolean
+  lastLogin?: Date
+  loginMethod?: string
+}
+
 // Get user profile
-export const getUserProfile = async (userId: string) => {
+export const getUserProfile = async (userId: string): Promise<UserProfile> => {
   try {
     const userRef = doc(db, "users", userId)
     const userSnap = await getDoc(userRef)
@@ -235,9 +249,18 @@ export const getUserProfile = async (userId: string) => {
       throw new Error("User not found")
     }
 
+    const data = userSnap.data()
     return {
       id: userId,
-      ...userSnap.data(),
+      email: data.email || '',
+      displayName: data.displayName || null,
+      phoneNumber: data.phoneNumber || null,
+      photoURL: data.photoURL || null,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      online: data.online || false,
+      isAdmin: data.isAdmin || false,
+      lastLogin: data.lastLogin?.toDate(),
+      loginMethod: data.loginMethod
     }
   } catch (error) {
     console.error("Error getting user profile:", error)
