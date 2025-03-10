@@ -85,23 +85,35 @@ export const signInWithEmail = async (email: string, password: string) => {
       throw new Error("User not found after sign in")
     }
 
-    // Check if the user is an admin
-    let userDoc
-    try {
-      userDoc = await getUserProfile(currentUser.uid)
-    } catch (error) {
-      console.warn("Error getting user profile:", error)
-      userDoc = { isAdmin: false }
-    }
+    // Create a promise to wait for user profile
+    const userProfilePromise = new Promise(async (resolve) => {
+      try {
+        const userDoc = await getUserProfile(currentUser.uid)
+        resolve(userDoc)
+      } catch (error) {
+        console.warn("Error getting user profile:", error)
+        resolve({ isAdmin: false })
+      }
+    })
 
-    const isAdmin = userDoc?.isAdmin || false
+    // Create a promise to wait for status update
+    const statusUpdatePromise = new Promise(async (resolve) => {
+      try {
+        await updateUserStatus(currentUser.uid, true)
+        resolve(true)
+      } catch (error) {
+        console.warn("Error updating user status:", error)
+        resolve(false)
+      }
+    })
 
-    // Update user's online status
-    try {
-      await updateUserStatus(currentUser.uid, true)
-    } catch (error) {
-      console.warn("Error updating user status:", error)
-    }
+    // Wait for both operations to complete
+    const [userDoc, statusUpdated] = await Promise.all([
+      userProfilePromise,
+      statusUpdatePromise
+    ])
+
+    const isAdmin = (userDoc as any)?.isAdmin || false
 
     console.log("User signed in successfully:", currentUser.uid, "Is Admin:", isAdmin)
     return { user: currentUser, isAdmin }
