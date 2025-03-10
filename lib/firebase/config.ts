@@ -8,13 +8,14 @@ import { getMessaging, Messaging } from "firebase/messaging"
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
+  apiKey: "AIzaSyCwt0Ng3A8KFILjAaWrXe54GIWh9cGonJg",
+  authDomain: "vibe-43e20.firebaseapp.com",
+  databaseURL: "https://vibe-43e20-default-rtdb.firebaseio.com",
+  projectId: "vibe-43e20",
+  storageBucket: "vibe-43e20.firebasestorage.app",
+  messagingSenderId: "208965831638",
+  appId: "1:208965831638:web:dc7f045d127e802cc9b277",
+  measurementId: "G-2FT28CBDE0"
 }
 
 // Initialize Firebase
@@ -33,29 +34,6 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
       // Check if we're in a browser environment
       if (typeof window === 'undefined') {
         console.log("Not in browser environment, skipping Firebase initialization")
-        resolve(false)
-        return
-      }
-
-      // Check if all required environment variables are present
-      const requiredEnvVars = [
-        'NEXT_PUBLIC_FIREBASE_API_KEY',
-        'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-        'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-        'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-        'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-        'NEXT_PUBLIC_FIREBASE_APP_ID',
-        'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID'
-      ] as const
-
-      const missingEnvVars = requiredEnvVars.filter(
-        (envVar) => !process.env[envVar]
-      )
-
-      if (missingEnvVars.length > 0) {
-        console.error(
-          `Missing required environment variables: ${missingEnvVars.join(', ')}`
-        )
         resolve(false)
         return
       }
