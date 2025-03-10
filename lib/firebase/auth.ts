@@ -159,6 +159,7 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
+    await ensureFirebaseInitialized()
     if (!auth) throw new Error("Firebase Auth is not initialized")
     
     // Update user's online status before signing out
@@ -177,6 +178,7 @@ export const signOut = async () => {
 // Add password reset function
 export const sendPasswordResetEmail = async (email: string) => {
   try {
+    await ensureFirebaseInitialized()
     if (!auth) throw new Error("Firebase Auth is not initialized")
     await firebaseSendPasswordResetEmail(auth, email)
     console.log("Password reset email sent to:", email)

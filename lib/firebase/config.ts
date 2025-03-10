@@ -42,9 +42,13 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
       if (!getApps().length) {
         console.log("Initializing Firebase app...")
         app = initializeApp(firebaseConfig)
+        
+        // Initialize auth first
         auth = getAuth(app)
+        
+        // Initialize other services
         db = getFirestore(app)
-
+        
         // Initialize analytics and messaging only if they're supported
         if ('serviceWorker' in navigator) {
           try {
