@@ -80,39 +80,20 @@ export const signInWithEmail = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(authInstance, email, password)
     const user = userCredential.user
 
-    // Get user profile and update status in parallel
-    const [userDoc] = await Promise.all([
-      getUserProfile(user.uid).catch(error => {
-        console.warn("Error getting user profile:", error)
-        return { isAdmin: false }
-      }),
-      updateUserStatus(user.uid, true).catch(error => {
-        console.warn("Error updating user status:", error)
-      })
-    ])
+    // Get user profile and update status
+    const userDoc = await getUserProfile(user.uid).catch(() => ({ isAdmin: false }))
+    await updateUserStatus(user.uid, true).catch(console.warn)
 
     const isAdmin = userDoc?.isAdmin || false
     console.log("User signed in successfully:", user.uid, "Is Admin:", isAdmin)
 
-    // Return a plain object with the user data
+    // Return a simplified user object
     return {
-      user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        emailVerified: user.emailVerified,
-        isAnonymous: user.isAnonymous,
-        metadata: user.metadata,
-        providerData: user.providerData,
-        refreshToken: user.refreshToken,
-        tenantId: user.tenantId,
-        delete: user.delete,
-        getIdToken: user.getIdToken,
-        getIdTokenResult: user.getIdTokenResult,
-        reload: user.reload,
-        toJSON: user.toJSON,
-      },
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      emailVerified: user.emailVerified,
       isAdmin
     }
   } catch (error) {
