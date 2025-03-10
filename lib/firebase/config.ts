@@ -79,7 +79,7 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
       // Wait for auth to be ready
       await new Promise<void>((resolveAuth) => {
         if (!auth) throw new Error("Firebase Auth is not initialized")
-        const unsubscribe = onAuthStateChanged(auth, () => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
           unsubscribe()
           resolveAuth()
         })
