@@ -24,31 +24,54 @@ let auth: Auth | null = null
 let db: Firestore | null = null
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
+let initializationPromise: Promise<void> | null = null
+
+// Create a promise that resolves when Firebase is initialized
+const initializeFirebase = async () => {
+  if (typeof window === "undefined") {
+    console.log("Firebase initialization skipped on server side")
+    return
+  }
+
+  // If initialization is already in progress, return the existing promise
+  if (initializationPromise) {
+    return initializationPromise
+  }
+
+  // Create new initialization promise
+  initializationPromise = (async () => {
+    try {
+      if (!app) {
+        app = initializeApp(firebaseConfig)
+      }
+      if (!auth) {
+        auth = getAuth(app)
+      }
+      if (!db) {
+        db = getFirestore(app)
+      }
+
+      // Initialize Analytics only in production
+      if (process.env.NODE_ENV === "production" && !analytics) {
+        analytics = getAnalytics(app)
+      }
+
+      console.log("Firebase initialized successfully")
+    } catch (error) {
+      console.error("Firebase initialization error:", error)
+      throw error
+    }
+  })()
+
+  return initializationPromise
+}
 
 // Initialize Firebase immediately if we're in the browser
 if (typeof window !== "undefined") {
-  try {
-    if (!app) {
-      app = initializeApp(firebaseConfig)
-    }
-    if (!auth) {
-      auth = getAuth(app)
-    }
-    if (!db) {
-      db = getFirestore(app)
-    }
-
-    // Initialize Analytics only in production
-    if (process.env.NODE_ENV === "production" && !analytics) {
-      analytics = getAnalytics(app)
-    }
-
-    console.log("Firebase initialized successfully")
-  } catch (error) {
-    console.error("Firebase initialization error:", error)
-  }
+  initializeFirebase().catch(console.error)
 }
 
-// Export the initialized services
-export { analytics, app, auth, db, messaging }
+// Export the initialized services and initialization promise
+export { analytics, app, auth, db, initializeFirebase, messaging }
+
 

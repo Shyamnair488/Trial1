@@ -14,21 +14,27 @@ import {
   signInWithPopup,
   updateProfile,
 } from "firebase/auth"
-import { auth } from "./config"
+import { auth, initializeFirebase } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
 // Helper function to check if auth is initialized
-const checkAuth = (): Auth => {
-  if (!auth) {
-    throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
+const checkAuth = async (): Promise<Auth> => {
+  try {
+    await initializeFirebase()
+    if (!auth) {
+      throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
+    }
+    return auth
+  } catch (error) {
+    console.error("Error checking auth:", error)
+    throw new Error("Failed to initialize Firebase. Please refresh the page and try again.")
   }
-  return auth
 }
 
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     console.log("Signing up with email:", email)
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password)
 
@@ -59,7 +65,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
 
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     console.log("Attempting to sign in with email:", email)
     
     // Sign in with email and password
@@ -76,8 +82,8 @@ export const signInWithEmail = async (email: string, password: string) => {
       const isAdmin = userDoc?.isAdmin || false
       console.log("User signed in successfully:", user.uid, "Is Admin:", isAdmin)
 
-      // Return a plain object with only the necessary data
-      return {
+      // Create a plain object with only the necessary data
+      const userData = {
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || '',
@@ -86,9 +92,12 @@ export const signInWithEmail = async (email: string, password: string) => {
         isAdmin,
         lastLogin: new Date().toISOString()
       }
+
+      // Return the plain object
+      return userData
     } catch (profileError) {
       console.warn("Error updating user profile/status:", profileError)
-      // Still return user data even if profile update fails
+      // Return a plain object with basic user data
       return {
         uid: user.uid,
         email: user.email || '',
@@ -113,6 +122,14 @@ export const signInWithEmail = async (email: string, password: string) => {
           throw new Error("This account has been disabled. Please contact support.")
         case "auth/invalid-email":
           throw new Error("Invalid email format. Please check your email address.")
+        case "auth/network-request-failed":
+          throw new Error("Network error. Please check your internet connection.")
+        case "auth/internal-error":
+          throw new Error("An internal error occurred. Please try again later.")
+        case "auth/operation-not-allowed":
+          throw new Error("Email/password accounts are not enabled. Please contact support.")
+        case "auth/weak-password":
+          throw new Error("Password is too weak. Please use a stronger password.")
         default:
           throw new Error(firebaseError.message || "An error occurred during sign in.")
       }
@@ -125,7 +142,7 @@ export const signInWithEmail = async (email: string, password: string) => {
 // Update the signInWithGoogle function to handle the unauthorized domain error better
 export const signInWithGoogle = async () => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     console.log("Signing in with Google")
     const provider = new GoogleAuthProvider()
     provider.addScope("profile")
@@ -171,7 +188,7 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     // Update user's online status before signing out
     if (authInstance.currentUser) {
       await updateUserStatus(authInstance.currentUser.uid, false)
@@ -188,7 +205,7 @@ export const signOut = async () => {
 // Add password reset function
 export const sendPasswordResetEmail = async (email: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     await firebaseSendPasswordResetEmail(authInstance, email)
     console.log("Password reset email sent to:", email)
     return true
@@ -252,7 +269,7 @@ export const setupPresence = () => {
 // Add this new function
 export const createAdminAccount = async (email: string, password: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password)
     const user = userCredential.user
 
@@ -294,7 +311,7 @@ export const setupRecaptcha = (containerId: string): RecaptchaVerifier | null =>
 
 export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifier: any) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     const provider = new PhoneAuthProvider(authInstance)
     const verificationId = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier)
     return verificationId
@@ -306,7 +323,7 @@ export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifie
 
 export const verifyPhoneNumber = async (verificationId: string, verificationCode: string) => {
   try {
-    const authInstance = checkAuth()
+    const authInstance = await checkAuth()
     const credential = PhoneAuthProvider.credential(verificationId, verificationCode)
     const userCredential = await signInWithCredential(authInstance, credential)
 
