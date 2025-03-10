@@ -13,12 +13,25 @@ let db: any = null
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
 
-// Check if we're in a browser environment
-const isBrowser = typeof window !== "undefined"
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
+}
 
-// Initialize Firebase only if we're in a browser environment
-if (isBrowser) {
+// Function to initialize Firebase
+function initializeFirebase() {
   try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
     // Check if all required environment variables are present
     const requiredEnvVars = [
       'NEXT_PUBLIC_FIREBASE_API_KEY',
@@ -38,41 +51,40 @@ if (isBrowser) {
       console.error(
         `Missing required environment variables: ${missingEnvVars.join(', ')}`
       )
+      return
+    }
+
+    // Initialize Firebase only if it hasn't been initialized yet
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig)
     } else {
-      const firebaseConfig = {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-      }
+      app = getApp()
+    }
 
-      // Initialize Firebase only if it hasn't been initialized yet
-      if (!getApps().length) {
-        app = initializeApp(firebaseConfig)
-      } else {
-        app = getApp()
-      }
+    // Initialize services
+    auth = getAuth(app)
+    db = getFirestore(app)
 
-      // Initialize services
-      auth = getAuth(app)
-      db = getFirestore(app)
-
-      // Initialize analytics and messaging only if they're supported
-      if ('serviceWorker' in navigator) {
-        try {
-          analytics = getAnalytics(app)
-          messaging = getMessaging(app)
-        } catch (error) {
-          console.warn("Firebase Analytics/Messaging initialization failed:", error)
-        }
+    // Initialize analytics and messaging only if they're supported
+    if ('serviceWorker' in navigator) {
+      try {
+        analytics = getAnalytics(app)
+        messaging = getMessaging(app)
+      } catch (error) {
+        console.warn("Firebase Analytics/Messaging initialization failed:", error)
       }
     }
+
+    return true
   } catch (error) {
     console.error("Firebase initialization failed:", error)
+    return false
   }
+}
+
+// Initialize Firebase if we're in a browser environment
+if (typeof window !== 'undefined') {
+  initializeFirebase()
 }
 
 // Export initialized services
