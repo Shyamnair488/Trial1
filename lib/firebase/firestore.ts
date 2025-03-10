@@ -198,6 +198,10 @@ export const sendVibe = async (roomId: string, senderId: string, type: string, s
     const roomSnap = await getDoc(roomRef)
     const roomData = roomSnap.data()
 
+    if (!roomData || !roomData.members) {
+      throw new Error("Room data not found or invalid")
+    }
+
     // Create notifications for other room members
     const notificationsRef = collection(db, "notifications")
     const notificationPromises = roomData.members

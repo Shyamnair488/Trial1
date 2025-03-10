@@ -23,6 +23,7 @@ let auth: Auth
 let db: Firestore
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
+let isInitialized = false
 
 // Function to initialize Firebase
 function initializeFirebase() {
@@ -71,10 +72,12 @@ function initializeFirebase() {
       }
 
       console.log("Firebase initialized successfully")
+      isInitialized = true
     } else {
       app = getApp()
       auth = getAuth(app)
       db = getFirestore(app)
+      isInitialized = true
     }
 
     return true
@@ -85,9 +88,11 @@ function initializeFirebase() {
 }
 
 // Initialize Firebase if we're in a browser environment
-let isInitialized = false
 if (typeof window !== 'undefined') {
-  isInitialized = initializeFirebase()
+  // Add a small delay to ensure the environment is ready
+  setTimeout(() => {
+    isInitialized = initializeFirebase()
+  }, 100)
 }
 
 // Export initialized services

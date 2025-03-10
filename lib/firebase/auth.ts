@@ -16,14 +16,17 @@ import {
 import { auth, isInitialized } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
-// Helper function to ensure Firebase is initialized
-const ensureFirebaseInitialized = async () => {
-  if (!isInitialized) {
-    throw new Error("Firebase is not initialized. Please refresh the page and try again.")
+// Helper function to ensure Firebase is initialized with retries
+const ensureFirebaseInitialized = async (maxRetries = 3): Promise<void> => {
+  let retries = 0
+  while (retries < maxRetries) {
+    if (isInitialized && auth) {
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+    retries++
   }
-  if (!auth) {
-    throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
-  }
+  throw new Error("Firebase is not initialized. Please refresh the page and try again.")
 }
 
 // Update the signUpWithEmail function to include phone number
