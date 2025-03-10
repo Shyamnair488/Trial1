@@ -79,19 +79,8 @@ export const signInWithEmail = async (email: string, password: string) => {
     console.log("Attempting to sign in with email:", email)
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
 
-    // Wait for auth state to be fully updated
-    await new Promise<void>((resolve) => {
-      if (!auth) throw new Error("Firebase Auth is not initialized")
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          unsubscribe()
-          resolve()
-        }
-      })
-    })
-
-    // Get the current user after auth state is updated
-    const currentUser = auth.currentUser
+    // Get the current user immediately after sign in
+    const currentUser = userCredential.user
     if (!currentUser) {
       throw new Error("User not found after sign in")
     }
