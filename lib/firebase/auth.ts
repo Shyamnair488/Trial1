@@ -79,12 +79,34 @@ export const signInWithEmail = async (email: string, password: string) => {
     console.log("Attempting to sign in with email:", email)
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
 
+    // Wait for auth state to be fully updated
+    await new Promise((resolve) => {
+      if (!auth) throw new Error("Firebase Auth is not initialized")
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          unsubscribe()
+          resolve(user)
+        }
+      })
+    })
+
     // Check if the user is an admin
-    const userDoc = await getUserProfile(userCredential.user.uid)
-    const isAdmin = userDoc.isAdmin || false
+    let userDoc
+    try {
+      userDoc = await getUserProfile(userCredential.user.uid)
+    } catch (error) {
+      console.warn("Error getting user profile:", error)
+      userDoc = { isAdmin: false }
+    }
+
+    const isAdmin = userDoc?.isAdmin || false
 
     // Update user's online status
-    await updateUserStatus(userCredential.user.uid, true)
+    try {
+      await updateUserStatus(userCredential.user.uid, true)
+    } catch (error) {
+      console.warn("Error updating user status:", error)
+    }
 
     console.log("User signed in successfully:", userCredential.user.uid, "Is Admin:", isAdmin)
     return { user: userCredential.user, isAdmin }

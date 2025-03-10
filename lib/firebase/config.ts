@@ -2,7 +2,7 @@
 
 import { Analytics, getAnalytics } from "firebase/analytics"
 import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app"
-import { Auth, getAuth, GoogleAuthProvider } from "firebase/auth"
+import { Auth, getAuth, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth"
 import { Firestore, getFirestore } from "firebase/firestore"
 import { getMessaging, Messaging } from "firebase/messaging"
 
@@ -75,6 +75,15 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
         resolve(false)
         return
       }
+
+      // Wait for auth to be ready
+      await new Promise<void>((resolveAuth) => {
+        if (!auth) throw new Error("Firebase Auth is not initialized")
+        const unsubscribe = onAuthStateChanged(auth, () => {
+          unsubscribe()
+          resolveAuth()
+        })
+      })
 
       resolve(true)
     } catch (error) {
