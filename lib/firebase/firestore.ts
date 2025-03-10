@@ -476,3 +476,98 @@ function formatNotificationMessage(notification: any): string {
   }
 }
 
+// Add message retention settings type
+export type MessageRetentionType = '7days' | 'afterView' | 'never'
+
+// Add message retention settings to room
+export const updateRoomMessageRetention = async (roomId: string, retentionType: MessageRetentionType) => {
+  try {
+    const roomRef = doc(db, "rooms", roomId)
+    await updateDoc(roomRef, {
+      messageRetention: retentionType,
+      updatedAt: serverTimestamp(),
+    })
+    return true
+  } catch (error) {
+    console.error("Error updating message retention:", error)
+    throw error
+  }
+}
+
+// Function to clean up messages based on retention settings
+export const cleanupMessages = async (roomId: string) => {
+  try {
+    const roomRef = doc(db, "rooms", roomId)
+    const roomSnap = await getDoc(roomRef)
+    
+    if (!roomSnap.exists()) {
+      throw new Error("Room not found")
+    }
+
+    const roomData = roomSnap.data()
+    const retentionType = roomData.messageRetention || 'never'
+
+    if (retentionType === 'never') {
+      return
+    }
+
+    const messagesRef = collection(db, "messages")
+    const now = new Date()
+    let queryRef
+
+    if (retentionType === '7days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      queryRef = query(
+        messagesRef,
+        where("roomId", "==", roomId),
+        where("timestamp", "<", sevenDaysAgo)
+      )
+    } else if (retentionType === 'afterView') {
+      queryRef = query(
+        messagesRef,
+        where("roomId", "==", roomId),
+        where("viewed", "==", true)
+      )
+    }
+
+    if (queryRef) {
+      const querySnapshot = await getDocs(queryRef)
+      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref))
+      await Promise.all(deletePromises)
+    }
+
+    return true
+  } catch (error) {
+    console.error("Error cleaning up messages:", error)
+    throw error
+  }
+}
+
+// Function to mark messages as viewed
+export const markMessagesAsViewed = async (roomId: string, userId: string) => {
+  try {
+    const messagesRef = collection(db, "messages")
+    const q = query(
+      messagesRef,
+      where("roomId", "==", roomId),
+      where("viewed", "==", false),
+      where("senderId", "!=", userId)
+    )
+
+    const querySnapshot = await getDocs(q)
+    const updatePromises = querySnapshot.docs.map(doc =>
+      updateDoc(doc.ref, {
+        viewed: true,
+        viewedAt: serverTimestamp(),
+        viewedBy: arrayUnion(userId)
+      })
+    )
+
+    await Promise.all(updatePromises)
+    return true
+  } catch (error) {
+    console.error("Error marking messages as viewed:", error)
+    throw error
+  }
+}
+

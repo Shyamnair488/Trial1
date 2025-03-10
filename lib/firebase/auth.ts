@@ -80,42 +80,63 @@ export const signInWithEmail = async (email: string, password: string) => {
 export const signInWithGoogle = async () => {
   try {
     console.log("Signing in with Google")
+    
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      throw new Error("Google sign-in is only available in browser environment")
+    }
+
+    // Check if auth is initialized
+    if (!auth) {
+      throw new Error("Firebase Auth is not initialized")
+    }
+
     const provider = new GoogleAuthProvider()
     // Add scopes for better profile access
     provider.addScope("profile")
     provider.addScope("email")
-    provider.setCustomParameters({ prompt: "select_account" })
-
-    const userCredential = await signInWithPopup(auth, provider)
-    const credential = GoogleAuthProvider.credentialFromResult(userCredential)
-
-    // Create user document in Firestore if it doesn't exist
-    await createUser(userCredential.user.uid, {
-      email: userCredential.user.email,
-      displayName: userCredential.user.displayName,
-      photoURL: userCredential.user.photoURL,
-      createdAt: new Date(),
-      online: true,
+    provider.setCustomParameters({ 
+      prompt: "select_account",
+      // Add these parameters to help with domain authorization
+      login_hint: "user@example.com",
+      hd: "example.com"
     })
 
-    console.log("User signed in with Google successfully:", userCredential.user.uid)
-    return userCredential.user
+    // Sign in with popup
+    const result = await signInWithPopup(auth, provider)
+    const user = result.user
+
+    // Create or update user document in Firestore
+    await createUser(user.uid, {
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      createdAt: new Date(),
+      online: true,
+      lastLogin: new Date(),
+      loginMethod: 'google'
+    })
+
+    console.log("User signed in with Google successfully:", user.uid)
+    return user
   } catch (error) {
     console.error("Error signing in with Google:", error)
-    // Provide more specific error handling
     if (error instanceof Error) {
       const firebaseError = error as { code?: string; message: string }
-      if (firebaseError.code === "auth/popup-closed-by-user") {
-        throw new Error("Google sign-in was cancelled. Please try again.")
-      } else if (firebaseError.code === "auth/popup-blocked") {
-        throw new Error("Pop-up was blocked by your browser. Please allow pop-ups for this site.")
-      } else if (firebaseError.code === "auth/unauthorized-domain") {
-        throw new Error(
-          "This domain is not authorized for Google sign-in. Please use email sign-in instead or contact support.",
-        )
+      switch (firebaseError.code) {
+        case "auth/popup-closed-by-user":
+          throw new Error("Google sign-in was cancelled. Please try again.")
+        case "auth/popup-blocked":
+          throw new Error("Pop-up was blocked by your browser. Please allow pop-ups for this site.")
+        case "auth/unauthorized-domain":
+          throw new Error("This domain is not authorized for Google sign-in. Please contact support.")
+        case "auth/account-exists-with-different-credential":
+          throw new Error("An account already exists with the same email address but different sign-in credentials.")
+        default:
+          throw new Error(firebaseError.message || "Could not sign in with Google. Please try again.")
       }
     }
-    throw error
+    throw new Error("Could not sign in with Google. Please try again.")
   }
 }
 
