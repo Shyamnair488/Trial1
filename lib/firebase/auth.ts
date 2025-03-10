@@ -31,6 +31,16 @@ const checkAuth = async (): Promise<Auth> => {
   }
 }
 
+// Helper function to convert Firebase User to plain object
+const convertUserToPlainObject = (user: any) => ({
+  uid: user.uid,
+  email: user.email || '',
+  displayName: user.displayName || '',
+  photoURL: user.photoURL || '',
+  emailVerified: user.emailVerified || false,
+  lastLogin: new Date().toISOString()
+})
+
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
   try {
@@ -56,7 +66,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
     })
 
     console.log("User signed up successfully:", userCredential.user.uid)
-    return userCredential.user
+    return convertUserToPlainObject(userCredential.user)
   } catch (error) {
     console.error("Error signing up with email:", error)
     throw error
@@ -164,7 +174,7 @@ export const signInWithGoogle = async () => {
     })
 
     console.log("User signed in with Google successfully:", user.uid)
-    return user
+    return convertUserToPlainObject(user)
   } catch (error) {
     console.error("Error signing in with Google:", error)
     if (error instanceof Error) {
@@ -285,7 +295,7 @@ export const createAdminAccount = async (email: string, password: string) => {
     })
 
     console.log("Admin account created successfully")
-    return user
+    return convertUserToPlainObject(user)
   } catch (error) {
     console.error("Error creating admin account:", error)
     throw error
@@ -335,7 +345,7 @@ export const verifyPhoneNumber = async (verificationId: string, verificationCode
       online: true,
     })
 
-    return userCredential.user
+    return convertUserToPlainObject(userCredential.user)
   } catch (error) {
     console.error("Error verifying phone number:", error)
     throw error
