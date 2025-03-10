@@ -1,55 +1,86 @@
 "use client"
 
-import type React from "react"
+import { auth } from '@/lib/firebase/config'
+import { onAuthStateChanged, User } from 'firebase/auth'
+import { createContext, useContext, useEffect, useState } from 'react'
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { onAuthStateChanged } from "firebase/auth"
-import { auth } from "@/lib/firebase/config"
-
-type User = {
-  uid: string
-  email: string | null
-  displayName: string | null
-  photoURL: string | null
-  isAdmin?: boolean
-}
-
-type AuthContextType = {
+interface AuthContextType {
   user: User | null
   loading: boolean
-  setUser: (user: User | null) => void
+  error: Error | null
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  setUser: () => {},
+  error: null,
 })
 
-export const useAuth = () => useContext(AuthContext)
+export function useAuth() {
+  return useContext(AuthContext)
+}
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        })
-      } else {
-        setUser(null)
-      }
-      setLoading(false)
-    })
+    let unsubscribe: (() => void) | undefined
 
-    return () => unsubscribe()
+    const initializeAuth = async () => {
+      try {
+        // Check if we're in a browser environment
+        if (typeof window === 'undefined') {
+          return
+        }
+
+        // Wait for a short delay to ensure Firebase is initialized
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Check if auth is available
+        if (!auth) {
+          throw new Error('Firebase Auth not initialized')
+        }
+
+        // Set up auth state listener
+        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          if (firebaseUser) {
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            } as User)
+          } else {
+            setUser(null)
+          }
+          setLoading(false)
+        }, (error) => {
+          console.error('Auth state change error:', error)
+          setError(error)
+        })
+      } catch (err) {
+        console.error('Auth initialization error:', err)
+        setError(err instanceof Error ? err : new Error('Failed to initialize auth'))
+        setLoading(false)
+      }
+    }
+
+    initializeAuth()
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    }
   }, [])
 
-  return <AuthContext.Provider value={{ user, loading, setUser }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, error }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
