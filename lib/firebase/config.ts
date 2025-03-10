@@ -1,3 +1,5 @@
+'use client'
+
 import { Analytics, getAnalytics } from "firebase/analytics"
 import { getApp, getApps, initializeApp } from "firebase/app"
 import { getAuth } from "firebase/auth"

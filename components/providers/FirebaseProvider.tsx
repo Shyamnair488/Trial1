@@ -1,3 +1,5 @@
+'use client'
+
 import { app, auth, db } from '@/lib/firebase/config'
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 
@@ -18,7 +20,11 @@ const FirebaseContext = createContext<FirebaseContextType>({
 })
 
 export function useFirebaseContext() {
-  return useContext(FirebaseContext)
+  const context = useContext(FirebaseContext)
+  if (!context) {
+    throw new Error('useFirebaseContext must be used within a FirebaseProvider')
+  }
+  return context
 }
 
 interface FirebaseProviderProps {
