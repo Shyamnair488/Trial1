@@ -193,7 +193,7 @@ export const sendPasswordResetEmail = async (email: string) => {
 
 // Set up presence system
 export const setupPresence = () => {
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && auth) {
     let beforeUnloadHandler: (() => void) | null = null
 
     // Set up the onAuthStateChanged listener
@@ -236,6 +236,9 @@ export const setupPresence = () => {
 // Add this new function
 export const createAdminAccount = async (email: string, password: string) => {
   try {
+    await ensureFirebaseInitialized()
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
 
@@ -260,7 +263,7 @@ export const createAdminAccount = async (email: string, password: string) => {
 
 // Add phone authentication functions
 export const setupRecaptcha = (containerId: string): RecaptchaVerifier | null => {
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && auth) {
     window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
       size: "normal",
       callback: () => {
@@ -277,6 +280,9 @@ export const setupRecaptcha = (containerId: string): RecaptchaVerifier | null =>
 
 export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifier: any) => {
   try {
+    await ensureFirebaseInitialized()
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     const provider = new PhoneAuthProvider(auth)
     const verificationId = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier)
     return verificationId
@@ -288,6 +294,9 @@ export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifie
 
 export const verifyPhoneNumber = async (verificationId: string, verificationCode: string) => {
   try {
+    await ensureFirebaseInitialized()
+    if (!auth) throw new Error("Firebase Auth is not initialized")
+    
     const credential = PhoneAuthProvider.credential(verificationId, verificationCode)
     const userCredential = await signInWithCredential(auth, credential)
 
