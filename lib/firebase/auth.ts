@@ -17,13 +17,14 @@ import { auth, isInitialized } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
 // Helper function to ensure Firebase is initialized with retries
-const ensureFirebaseInitialized = async (maxRetries = 3): Promise<void> => {
+const ensureFirebaseInitialized = async (maxRetries = 5): Promise<void> => {
   let retries = 0
   while (retries < maxRetries) {
     if (isInitialized && auth) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for 200ms between retries
+    await new Promise(resolve => setTimeout(resolve, 200))
     retries++
   }
   throw new Error("Firebase is not initialized. Please refresh the page and try again.")

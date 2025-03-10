@@ -26,7 +26,7 @@ let messaging: Messaging | null = null
 let isInitialized = false
 
 // Function to initialize Firebase
-function initializeFirebase() {
+async function initializeFirebase() {
   try {
     // Check if we're in a browser environment
     if (typeof window === 'undefined') {
@@ -89,10 +89,14 @@ function initializeFirebase() {
 
 // Initialize Firebase if we're in a browser environment
 if (typeof window !== 'undefined') {
-  // Add a small delay to ensure the environment is ready
-  setTimeout(() => {
-    isInitialized = initializeFirebase()
-  }, 100)
+  // Initialize immediately
+  initializeFirebase().then(success => {
+    if (!success) {
+      console.error("Failed to initialize Firebase")
+    }
+  }).catch(error => {
+    console.error("Error during Firebase initialization:", error)
+  })
 }
 
 // Export initialized services
