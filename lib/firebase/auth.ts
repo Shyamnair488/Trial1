@@ -11,44 +11,29 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
-  updateProfile
+  updateProfile,
 } from "firebase/auth"
-import { auth, firebaseInitPromise } from "./config"
+import { auth } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
-// Helper function to ensure Firebase is initialized with retries
-const ensureFirebaseInitialized = async (maxRetries = 10): Promise<void> => {
-  try {
-    // Wait for Firebase to initialize
-    const initialized = await firebaseInitPromise
-    if (!initialized) {
-      throw new Error("Firebase failed to initialize")
-    }
-
-    // Additional check to ensure auth is available
-    if (!auth) {
-      throw new Error("Firebase Auth is not initialized")
-    }
-
-    console.log("Firebase is initialized and ready")
-  } catch (error) {
-    console.error("Error ensuring Firebase initialization:", error)
-    throw new Error("Firebase is not initialized. Please refresh the page and try again.")
+// Helper function to check if auth is initialized
+const checkAuth = () => {
+  if (!auth) {
+    throw new Error("Firebase Auth is not initialized")
   }
+  return auth
 }
 
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
+    const authInstance = checkAuth()
     console.log("Signing up with email:", email)
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const userCredential = await createUserWithEmailAndPassword(authInstance, email, password)
 
     // Update profile with display name
-    if (auth.currentUser) {
-      await updateProfile(auth.currentUser, {
+    if (authInstance.currentUser) {
+      await updateProfile(authInstance.currentUser, {
         displayName,
       })
     }
@@ -73,33 +58,19 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
 
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
+    const authInstance = checkAuth()
     console.log("Attempting to sign in with email:", email)
-    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    const userCredential = await signInWithEmailAndPassword(authInstance, email, password)
 
-    // Get the current user immediately after sign in
-    const currentUser = userCredential.user
-    if (!currentUser) {
-      throw new Error("User not found after sign in")
-    }
-
-    // Get user profile and update status in parallel
-    const [userDoc] = await Promise.all([
-      getUserProfile(currentUser.uid).catch(error => {
-        console.warn("Error getting user profile:", error)
-        return { isAdmin: false }
-      }),
-      updateUserStatus(currentUser.uid, true).catch(error => {
-        console.warn("Error updating user status:", error)
-      })
-    ])
-
+    // Check if the user is an admin
+    const userDoc = await getUserProfile(userCredential.user.uid)
     const isAdmin = userDoc?.isAdmin || false
-    console.log("User signed in successfully:", currentUser.uid, "Is Admin:", isAdmin)
-    
-    return { user: currentUser, isAdmin }
+
+    // Update user's online status
+    await updateUserStatus(userCredential.user.uid, true)
+
+    console.log("User signed in successfully:", userCredential.user.uid, "Is Admin:", isAdmin)
+    return { user: userCredential.user, isAdmin }
   } catch (error) {
     console.error("Error signing in with email:", error)
     if (error instanceof Error) {
@@ -118,21 +89,14 @@ export const signInWithEmail = async (email: string, password: string) => {
 // Update the signInWithGoogle function to handle the unauthorized domain error better
 export const signInWithGoogle = async () => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
+    const authInstance = checkAuth()
     console.log("Signing in with Google")
-    
     const provider = new GoogleAuthProvider()
-    // Add scopes for better profile access
     provider.addScope("profile")
     provider.addScope("email")
-    provider.setCustomParameters({ 
-      prompt: "select_account"
-    })
+    provider.setCustomParameters({ prompt: "select_account" })
 
-    // Sign in with popup
-    const result = await signInWithPopup(auth, provider)
+    const result = await signInWithPopup(authInstance, provider)
     const user = result.user
 
     // Create or update user document in Firestore
@@ -171,15 +135,13 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
+    const authInstance = checkAuth()
     // Update user's online status before signing out
-    if (auth.currentUser) {
-      await updateUserStatus(auth.currentUser.uid, false)
+    if (authInstance.currentUser) {
+      await updateUserStatus(authInstance.currentUser.uid, false)
     }
 
-    await firebaseSignOut(auth)
+    await firebaseSignOut(authInstance)
     console.log("User signed out successfully")
   } catch (error) {
     console.error("Error signing out:", error)
@@ -190,9 +152,8 @@ export const signOut = async () => {
 // Add password reset function
 export const sendPasswordResetEmail = async (email: string) => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    await firebaseSendPasswordResetEmail(auth, email)
+    const authInstance = checkAuth()
+    await firebaseSendPasswordResetEmail(authInstance, email)
     console.log("Password reset email sent to:", email)
     return true
   } catch (error) {
@@ -255,10 +216,8 @@ export const setupPresence = () => {
 // Add this new function
 export const createAdminAccount = async (email: string, password: string) => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const authInstance = checkAuth()
+    const userCredential = await createUserWithEmailAndPassword(authInstance, email, password)
     const user = userCredential.user
 
     // Set custom claims for admin
@@ -299,10 +258,8 @@ export const setupRecaptcha = (containerId: string): RecaptchaVerifier | null =>
 
 export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifier: any) => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
-    const provider = new PhoneAuthProvider(auth)
+    const authInstance = checkAuth()
+    const provider = new PhoneAuthProvider(authInstance)
     const verificationId = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier)
     return verificationId
   } catch (error) {
@@ -313,11 +270,9 @@ export const sendVerificationCode = async (phoneNumber: string, recaptchaVerifie
 
 export const verifyPhoneNumber = async (verificationId: string, verificationCode: string) => {
   try {
-    await ensureFirebaseInitialized()
-    if (!auth) throw new Error("Firebase Auth is not initialized")
-    
+    const authInstance = checkAuth()
     const credential = PhoneAuthProvider.credential(verificationId, verificationCode)
-    const userCredential = await signInWithCredential(auth, credential)
+    const userCredential = await signInWithCredential(authInstance, credential)
 
     // Create user document in Firestore if it doesn't exist
     await createUser(userCredential.user.uid, {
