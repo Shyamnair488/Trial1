@@ -8,14 +8,14 @@ import { Messaging } from "firebase/messaging"
 
 // Define the Firebase configuration object
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyCwt0Ng3A8KFILjAaWrXe54GIWh9cGonJg",
+  authDomain: "vibe-43e20.firebaseapp.com",
+  databaseURL: "https://vibe-43e20-default-rtdb.firebaseio.com",
+  projectId: "vibe-43e20",
+  storageBucket: "vibe-43e20.firebasestorage.app",
+  messagingSenderId: "208965831638",
+  appId: "1:208965831638:web:dc7f045d127e802cc9b277",
+  measurementId: "G-2FT28CBDE0"
 }
 
 // Initialize Firebase
@@ -24,25 +24,6 @@ let auth: Auth | null = null
 let db: Firestore | null = null
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
-
-// Initialize Firebase immediately if we're in the browser
-if (typeof window !== "undefined") {
-  try {
-    // Initialize Firebase
-    app = initializeApp(firebaseConfig)
-    auth = getAuth(app)
-    db = getFirestore(app)
-
-    // Initialize Analytics only in production
-    if (process.env.NODE_ENV === "production") {
-      analytics = getAnalytics(app)
-    }
-
-    console.log("Firebase initialized successfully")
-  } catch (error) {
-    console.error("Firebase initialization error:", error)
-  }
-}
 
 // Create a promise that resolves when Firebase is initialized
 const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
@@ -58,22 +39,6 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
       console.log("Firebase already initialized")
       resolve(true)
       return
-    }
-
-    // Verify all required environment variables are present
-    const requiredEnvVars = [
-      'NEXT_PUBLIC_FIREBASE_API_KEY',
-      'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-      'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-      'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-      'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-      'NEXT_PUBLIC_FIREBASE_APP_ID',
-      'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID'
-    ]
-
-    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName])
-    if (missingEnvVars.length > 0) {
-      throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`)
     }
 
     // Initialize Firebase
@@ -93,6 +58,17 @@ const firebaseInitPromise = new Promise<boolean>((resolve, reject) => {
     reject(error)
   }
 })
+
+// Initialize Firebase immediately if we're in the browser
+if (typeof window !== "undefined") {
+  firebaseInitPromise
+    .then(() => {
+      console.log("Firebase services initialized successfully")
+    })
+    .catch((error) => {
+      console.error("Error initializing Firebase services:", error)
+    })
+}
 
 // Export the initialized services
 export { analytics, app, auth, db, firebaseInitPromise, messaging }

@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Auth,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   signOut as firebaseSignOut,
@@ -16,19 +17,26 @@ import {
 import { auth, firebaseInitPromise } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
-// Helper function to check if auth is initialized
-const checkAuth = async () => {
-  try {
-    // Wait for Firebase to initialize
-    await firebaseInitPromise
-    if (!auth) {
-      throw new Error("Firebase Auth is not initialized")
+// Helper function to check if auth is initialized with retries
+const checkAuth = async (maxRetries = 5): Promise<Auth> => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      // Wait for Firebase to initialize
+      await firebaseInitPromise
+      if (!auth) {
+        throw new Error("Firebase Auth is not initialized")
+      }
+      return auth
+    } catch (error) {
+      console.warn(`Auth initialization attempt ${i + 1} failed:`, error)
+      if (i === maxRetries - 1) {
+        throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
+      }
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    return auth
-  } catch (error) {
-    console.error("Error checking auth:", error)
-    throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
   }
+  throw new Error("Firebase Auth is not initialized. Please refresh the page and try again.")
 }
 
 // Update the signUpWithEmail function to include phone number
