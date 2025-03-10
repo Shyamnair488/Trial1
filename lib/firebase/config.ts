@@ -1,17 +1,17 @@
-import { initializeApp, getApps, getApp } from "firebase/app"
+import { Analytics, getAnalytics } from "firebase/analytics"
+import { getApp, getApps, initializeApp } from "firebase/app"
 import { getAuth } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
-import { getMessaging } from "firebase/messaging"
-import { getAnalytics } from "firebase/analytics"
+import { getMessaging, Messaging } from "firebase/messaging"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCwt0Ng3A8KFILjAaWrXe54GIWh9cGonJg",
-  authDomain: "vibe-43e20.firebaseapp.com",
-  projectId: "vibe-43e20",
-  storageBucket: "vibe-43e20.firebasestorage.app",
-  messagingSenderId: "208965831638",
-  appId: "1:208965831638:web:dc7f045d127e802cc9b277",
-  measurementId: "G-2FT28CBDE0",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
 // Initialize Firebase
@@ -20,8 +20,8 @@ const auth = getAuth(app)
 const db = getFirestore(app)
 
 // Initialize Firebase Analytics and Messaging conditionally for client-side
-let analytics: any = null
-let messaging: any = null
+let analytics: Analytics | null = null
+let messaging: Messaging | null = null
 
 if (typeof window !== "undefined") {
   try {
@@ -32,5 +32,5 @@ if (typeof window !== "undefined") {
   }
 }
 
-export { app, auth, db, messaging, analytics }
+export { analytics, app, auth, db, messaging }
 

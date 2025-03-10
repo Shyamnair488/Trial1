@@ -1,18 +1,18 @@
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  updateProfile,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  PhoneAuthProvider,
-  signInWithCredential,
-  RecaptchaVerifier,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+    signOut as firebaseSignOut,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    PhoneAuthProvider,
+    RecaptchaVerifier,
+    signInWithCredential,
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    updateProfile,
 } from "firebase/auth"
 import { auth } from "./config"
-import { createUser, updateUserStatus, getUserProfile } from "./firestore"
+import { createUser, getUserProfile, updateUserStatus } from "./firestore"
 
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
@@ -156,35 +156,56 @@ export const sendPasswordResetEmail = async (email: string) => {
 // Set up presence system
 export const setupPresence = () => {
   if (typeof window !== "undefined") {
+    let beforeUnloadHandler: (() => void) | null = null
+
     // Set up the onAuthStateChanged listener
-    onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // User is signed in
         await updateUserStatus(user.uid, true)
 
-        // Set up beforeunload event to update status when user leaves
-        window.addEventListener("beforeunload", async () => {
+        // Remove existing handler if any
+        if (beforeUnloadHandler) {
+          window.removeEventListener("beforeunload", beforeUnloadHandler)
+        }
+
+        // Create new handler
+        beforeUnloadHandler = async () => {
           await updateUserStatus(user.uid, false)
-        })
+        }
+
+        // Add new handler
+        window.addEventListener("beforeunload", beforeUnloadHandler)
+      } else {
+        // User is signed out
+        if (beforeUnloadHandler) {
+          window.removeEventListener("beforeunload", beforeUnloadHandler)
+          beforeUnloadHandler = null
+        }
       }
     })
+
+    // Return cleanup function
+    return () => {
+      unsubscribe()
+      if (beforeUnloadHandler) {
+        window.removeEventListener("beforeunload", beforeUnloadHandler)
+      }
+    }
   }
 }
 
 // Add this new function
-export const createAdminAccount = async () => {
-  const adminEmail = "admin@gmail.com"
-  const adminPassword = "admin@123"
-
+export const createAdminAccount = async (email: string, password: string) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword)
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
 
     // Set custom claims for admin
     // Note: This requires Firebase Admin SDK and should be done on the server-side
     // For this example, we'll just add an admin field to the user document
     await createUser(user.uid, {
-      email: adminEmail,
+      email,
       displayName: "Admin",
       isAdmin: true,
       createdAt: new Date(),
@@ -192,13 +213,15 @@ export const createAdminAccount = async () => {
     })
 
     console.log("Admin account created successfully")
+    return user
   } catch (error) {
     console.error("Error creating admin account:", error)
+    throw error
   }
 }
 
 // Add phone authentication functions
-export const setupRecaptcha = (containerId: string) => {
+export const setupRecaptcha = (containerId: string): RecaptchaVerifier | null => {
   if (typeof window !== "undefined") {
     window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
       size: "normal",
@@ -245,10 +268,10 @@ export const verifyPhoneNumber = async (verificationId: string, verificationCode
   }
 }
 
-// Add this to the global Window interface
+// Update the global Window interface
 declare global {
   interface Window {
-    recaptchaVerifier: any
+    recaptchaVerifier: RecaptchaVerifier
     confirmationResult: any
   }
 }
