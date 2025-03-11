@@ -1,18 +1,18 @@
 'use client'
 
 import {
-  Auth,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
-  signOut as firebaseSignOut,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  PhoneAuthProvider,
-  RecaptchaVerifier,
-  signInWithCredential,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  updateProfile,
+    Auth,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+    signOut as firebaseSignOut,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    PhoneAuthProvider,
+    RecaptchaVerifier,
+    signInWithCredential,
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    updateProfile,
 } from "firebase/auth"
 import { auth, initializeFirebase } from "./config"
 import { createUser, getUserProfile, updateUserStatus } from "./firestore"
@@ -32,14 +32,19 @@ const checkAuth = async (): Promise<Auth> => {
 }
 
 // Helper function to convert Firebase User to plain object
-const convertUserToPlainObject = (user: any) => ({
-  uid: user.uid,
-  email: user.email || '',
-  displayName: user.displayName || '',
-  photoURL: user.photoURL || '',
-  emailVerified: user.emailVerified || false,
-  lastLogin: new Date().toISOString()
-})
+const convertUserToPlainObject = (user: any) => {
+  const plainObject = {
+    uid: user.uid,
+    email: user.email || '',
+    displayName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    emailVerified: user.emailVerified || false,
+    lastLogin: new Date().toISOString(),
+    provider: user.providerData[0]?.providerId || 'unknown',
+    createdAt: user.metadata.creationTime || new Date().toISOString(),
+  }
+  return JSON.parse(JSON.stringify(plainObject))
+}
 
 // Update the signUpWithEmail function to include phone number
 export const signUpWithEmail = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
@@ -79,8 +84,7 @@ export const signInWithEmail = async (email: string, password: string) => {
     console.log("Attempting to sign in with email:", email)
     
     // Sign in with email and password
-    const userCredential = await signInWithEmailAndPassword(authInstance, email, password)
-    const user = userCredential.user
+    const { user } = await signInWithEmailAndPassword(authInstance, email, password)
 
     // Wait for user profile and status update
     try {
@@ -92,31 +96,38 @@ export const signInWithEmail = async (email: string, password: string) => {
       const isAdmin = userDoc?.isAdmin || false
       console.log("User signed in successfully:", user.uid, "Is Admin:", isAdmin)
 
-      // Create a plain object with only the necessary data
-      const userData = {
+      // Return a static object with user data
+      const staticUserData = {
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || '',
         photoURL: user.photoURL || '',
         emailVerified: user.emailVerified || false,
         isAdmin,
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
+        // Add any other necessary fields here
+        provider: user.providerData[0]?.providerId || 'email',
+        createdAt: user.metadata.creationTime || new Date().toISOString(),
       }
 
-      // Return the plain object
-      return userData
+      // Return the static object
+      return JSON.parse(JSON.stringify(staticUserData))
     } catch (profileError) {
       console.warn("Error updating user profile/status:", profileError)
-      // Return a plain object with basic user data
-      return {
+      // Return a basic static object if profile update fails
+      const basicUserData = {
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || '',
         photoURL: user.photoURL || '',
         emailVerified: user.emailVerified || false,
         isAdmin: false,
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
+        provider: 'email',
+        createdAt: user.metadata.creationTime || new Date().toISOString(),
       }
+
+      return JSON.parse(JSON.stringify(basicUserData))
     }
   } catch (error) {
     console.error("Error signing in with email:", error)
@@ -138,8 +149,6 @@ export const signInWithEmail = async (email: string, password: string) => {
           throw new Error("An internal error occurred. Please try again later.")
         case "auth/operation-not-allowed":
           throw new Error("Email/password accounts are not enabled. Please contact support.")
-        case "auth/weak-password":
-          throw new Error("Password is too weak. Please use a stronger password.")
         default:
           throw new Error(firebaseError.message || "An error occurred during sign in.")
       }

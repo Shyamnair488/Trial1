@@ -1,7 +1,7 @@
 'use client'
 
 import { Analytics, getAnalytics } from "firebase/analytics"
-import { FirebaseApp, initializeApp } from "firebase/app"
+import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app"
 import { Auth, getAuth } from "firebase/auth"
 import { Firestore, getFirestore } from "firebase/firestore"
 import { Messaging } from "firebase/messaging"
@@ -19,12 +19,28 @@ const firebaseConfig = {
 }
 
 // Initialize Firebase
-let app: FirebaseApp | null = null
-let auth: Auth | null = null
-let db: Firestore | null = null
+let app: FirebaseApp
+let auth: Auth
+let db: Firestore
 let analytics: Analytics | null = null
 let messaging: Messaging | null = null
 let initializationPromise: Promise<void> | null = null
+
+// Initialize Firebase
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig)
+} else {
+  app = getApp()
+}
+
+// Initialize services
+auth = getAuth(app)
+db = getFirestore(app)
+
+// Initialize Analytics only in production and client-side
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+  analytics = getAnalytics(app)
+}
 
 // Create a promise that resolves when Firebase is initialized
 const initializeFirebase = async () => {
@@ -41,19 +57,8 @@ const initializeFirebase = async () => {
   // Create new initialization promise
   initializationPromise = (async () => {
     try {
-      if (!app) {
-        app = initializeApp(firebaseConfig)
-      }
-      if (!auth) {
-        auth = getAuth(app)
-      }
-      if (!db) {
-        db = getFirestore(app)
-      }
-
-      // Initialize Analytics only in production
-      if (process.env.NODE_ENV === "production" && !analytics) {
-        analytics = getAnalytics(app)
+      if (!messaging) {
+        messaging = getMessaging(app)
       }
 
       console.log("Firebase initialized successfully")
